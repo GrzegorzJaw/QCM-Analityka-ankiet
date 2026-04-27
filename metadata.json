@@ -1,0 +1,5 @@
+{
+  "name": "Quest Survey Analytics",
+  "description": "An advanced tool for digitizing, analyzing, and performing EDA on Quest training evaluation surveys using Gemini AI.",
+  "requestFramePermissions": []
+}
