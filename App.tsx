@@ -14,7 +14,6 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
-  const [loginData, setLoginData] = useState({ login: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -23,12 +22,13 @@ const App: React.FC = () => {
   const [selectedQuarter, setSelectedQuarter] = useState<string>('all');
   const [selectedFile, setSelectedFile] = useState<string>('all');
 
+  const [loginData, setLoginData] = useState({ login: '', password: '' });
+
   // Monitorowanie stanu autoryzacji i ładowanie danych
   useEffect(() => {
-    // 1. Subskrypcja Firebase Auth
-    const unsubscribeAuth = firebaseService.subscribeToAuthChanges((user) => {
-      setIsAdmin(!!user);
-    });
+    // 1. Sprawdzenie sesji (hardcoded admin dla Emilia)
+    const auth = sessionStorage.getItem('quest_admin_auth');
+    if (auth === 'true') setIsAdmin(true);
 
     // 2. Pobieranie danych z Firestore
     const fetchData = async () => {
@@ -45,24 +45,24 @@ const App: React.FC = () => {
     };
 
     fetchData();
-
-    return () => unsubscribeAuth();
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError('');
-    try {
-      // Użytkownik podaje login (email) i hasło w formularzu
-      await firebaseService.loginAdmin(loginData.login, loginData.password);
+    if (loginData.login === 'Emilia' && loginData.password === 'Quest123!') {
+      setIsAdmin(true);
+      sessionStorage.setItem('quest_admin_auth', 'true');
       setShowLoginModal(false);
+      setLoginError('');
       setLoginData({ login: '', password: '' });
-    } catch (error: any) {
-      setLoginError(error.message || 'Nieprawidłowy login lub hasło');
+    } else {
+      setLoginError('Nieprawidłowy login lub hasło');
     }
   };
 
   const handleLogout = async () => {
+    setIsAdmin(false);
+    sessionStorage.removeItem('quest_admin_auth');
     await firebaseService.logout();
     if (activeTab === AppTab.UPLOAD) setActiveTab(AppTab.SUMMARY);
   };
@@ -253,19 +253,19 @@ const App: React.FC = () => {
                 <i className="fa-solid fa-user-shield text-3xl"></i>
               </div>
               <h2 className="text-2xl font-black text-slate-800 tracking-tight">Panel Administracyjny</h2>
-              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2">Logowanie przez Firebase Auth</p>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2">Dostęp chroniony hasłem</p>
             </div>
             
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block ml-1">Email / Login</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block ml-1">Login</label>
                 <input 
                   autoFocus
-                  type="email" 
+                  type="text" 
                   className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
                   value={loginData.login}
                   onChange={e => setLoginData({...loginData, login: e.target.value})}
-                  placeholder="admin@quest.pl"
+                  placeholder="Użytkownik"
                 />
               </div>
               <div>
@@ -283,9 +283,9 @@ const App: React.FC = () => {
                 <button 
                   type="button"
                   onClick={() => setShowLoginModal(false)}
-                  className="flex-1 py-4 bg-slate-100 text-slate-500 font-bold text-xs rounded-2xl hover:bg-slate-200 transition-all"
+                  className="flex-1 py-4 bg-slate-100 text-slate-500 font-bold text-xs rounded-2xl hover:bg-slate-200 transition-all font-black uppercase tracking-widest"
                 >
-                  ANULUJ
+                  Anuluj
                 </button>
                 <button 
                   type="submit"
@@ -375,7 +375,7 @@ const App: React.FC = () => {
         ) : (
           <div className="bg-white rounded-3xl border border-slate-200 p-20 text-center shadow-sm">
              <i className="fa-solid fa-database text-6xl text-slate-100 mb-6"></i>
-             <h2 className="text-2xl font-black text-slate-800 tracking-tight">Braz danych w chmurze</h2>
+             <h2 className="text-2xl font-black text-slate-800 tracking-tight">Baza danych w chmurze</h2>
              <p className="text-slate-500 mt-3 max-w-md mx-auto font-medium">
                {isAdmin ? "Wgraj ankiety w zakładce 'Nowe Dane', aby pojawiły się w Firestore." : "Baza danych Quest jest obecnie pusta."}
              </p>
@@ -394,7 +394,7 @@ const App: React.FC = () => {
         </div>
         <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full text-[9px] font-bold text-slate-500">
           <i className={`fa-solid ${isAdmin ? 'fa-unlock text-orange-500' : 'fa-lock'}`}></i>
-          Tryb: {isAdmin ? 'ADMINISTRATOR' : 'GOŚĆ'} (Zabezpieczone Firebase Auth)
+          Tryb: {isAdmin ? 'ADMINISTRATOR' : 'GOŚĆ'}
         </div>
       </footer>
     </div>

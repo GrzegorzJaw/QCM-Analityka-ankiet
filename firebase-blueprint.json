@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "Survey": {
+      "title": "Survey",
+      "description": "Represents a single survey result from a training session.",
+      "type": "object",
+      "properties": {
+        "trainingTitle": { "type": "string" },
+        "date": { "type": "string" },
+        "place": { "type": "string" },
+        "ratings": {
+          "type": "object",
+          "properties": {
+            "organization": { "type": "number" },
+            "methods": { "type": "number" },
+            "practicality": { "type": "number" },
+            "materialsClarity": { "type": "number" },
+            "materialsMerit": { "type": "number" }
+          }
+        },
+        "trainerRatings": {
+          "type": "object",
+          "description": "Ratings for each trainer involved in the session."
+        },
+        "comments": {
+          "type": "object",
+          "properties": {
+            "positive": { "type": "string" },
+            "negative": { "type": "string" },
+            "suggestions": { "type": "string" },
+            "general": { "type": "string" }
+          }
+        },
+        "fileName": { "type": "string" }
+      },
+      "required": ["trainingTitle", "date", "fileName"]
+    }
+  },
+  "firestore": {
+    "/ankiety/{surveyId}": {
+      "schema": "Survey",
+      "description": "Collection of all surveys."
+    }
+  }
+}

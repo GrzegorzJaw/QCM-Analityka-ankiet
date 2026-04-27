@@ -7,38 +7,71 @@ import {
   query,
   where,
   doc,
-  writeBatch
+  writeBatch,
+  deleteDoc,
+  getDoc
 } from "firebase/firestore";
 import { 
   getAuth, 
-  signInWithEmailAndPassword, 
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut, 
   onAuthStateChanged,
   User
 } from "firebase/auth";
 import { SurveyRecord } from "../types";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAdBqNn8AW49veNeJJ4CjiTmwLEonvg8Mg",
-  authDomain: "quest-analytics-native.firebaseapp.com",
-  projectId: "quest-analytics-native",
-  storageBucket: "quest-analytics-native.firebasestorage.app",
-  messagingSenderId: "19725162334",
-  appId: "1:19725162334:web:211af1008c72e2225e21cf",
-  measurementId: "G-3S2RZXTDGR"
-};
+import firebaseConfig from "../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const surveysCol = collection(db, "surveys");
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const auth = getAuth(app);
+
+const ankietyCol = collection(db, "ankiety");
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 export const firebaseService = {
   auth,
   
-  async loginAdmin(email, password): Promise<User | null> {
+  async loginAdmin(): Promise<User | null> {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
       return userCredential.user;
     } catch (error: any) {
       console.error("Login Error:", error.message);
@@ -58,36 +91,51 @@ export const firebaseService = {
     return onAuthStateChanged(auth, callback);
   },
 
-  async getAllSurveys(): Promise<SurveyRecord[]> {
+  async getIsAdmin(uid: string): Promise<boolean> {
     try {
-      const snapshot = await getDocs(surveysCol);
+      const docRef = doc(db, "admins", uid);
+      const docSnap = await getDoc(docRef);
+      return docSnap.exists();
+    } catch (error) {
+      console.error("Admin check failed", error);
+      return false;
+    }
+  },
+
+  async getAllSurveys(): Promise<SurveyRecord[]> {
+    const path = "ankiety";
+    try {
+      const snapshot = await getDocs(ankietyCol);
       return snapshot.docs.map(doc => ({
         ...doc.data(),
         id: doc.id
       } as SurveyRecord));
     } catch (error) {
-      console.error("Firestore Error (Get):", error);
+      handleFirestoreError(error, OperationType.GET, path);
       return [];
     }
   },
 
   async addSurveys(newSurveys: SurveyRecord[], fileName: string): Promise<void> {
+    const path = "ankiety";
     try {
       const batch = writeBatch(db);
       newSurveys.forEach(survey => {
-        const docRef = doc(surveysCol);
-        batch.set(docRef, { ...survey, fileName });
+        const docRef = doc(ankietyCol);
+        // Remove id from data to avoid conflict if it exists
+        const { id, ...data } = survey;
+        batch.set(docRef, { ...data, fileName, createdAt: new Date() });
       });
       await batch.commit();
     } catch (error) {
-      console.error("Firestore Error (Add):", error);
-      throw error;
+      handleFirestoreError(error, OperationType.WRITE, path);
     }
   },
 
   async deleteSurveysByFileName(fileName: string): Promise<void> {
+    const path = `ankiety?fileName=${fileName}`;
     try {
-      const q = query(surveysCol, where("fileName", "==", fileName));
+      const q = query(ankietyCol, where("fileName", "==", fileName));
       const snapshot = await getDocs(q);
       const batch = writeBatch(db);
       snapshot.docs.forEach((d) => {
@@ -95,22 +143,23 @@ export const firebaseService = {
       });
       await batch.commit();
     } catch (error) {
-      console.error("Firestore Error (Delete File):", error);
-      throw error;
+      handleFirestoreError(error, OperationType.WRITE, path);
     }
   },
 
   async clearAllData(): Promise<void> {
+    const path = "ankiety";
     try {
-      const snapshot = await getDocs(surveysCol);
+      const snapshot = await getDocs(ankietyCol);
       const batch = writeBatch(db);
       snapshot.docs.forEach((d) => {
         batch.delete(d.ref);
       });
       await batch.commit();
     } catch (error) {
-      console.error("Firestore Error (Clear All):", error);
-      throw error;
+      handleFirestoreError(error, OperationType.WRITE, path);
     }
   }
 };
+
+
