@@ -1,10 +1,10 @@
 {
-  "projectId": "quest-475312",
-  "appId": "1:747153015885:web:f1664c153433a19cb2c804",
-  "apiKey": "AIzaSyCoscEv595-I3TQpvuJk3ctR4V1Lovmfaw",
-  "authDomain": "quest-475312.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-52f3d772-3f60-4047-b9dd-e0f1f1090e94",
-  "storageBucket": "quest-475312.firebasestorage.app",
-  "messagingSenderId": "747153015885",
-  "measurementId": ""
+  "apiKey": "AIzaSyC_7Y--kK7hzzOSsTR5NHu6C8UlnKuAXcY",
+  "authDomain": "qcm-analiza-ankiet.firebaseapp.com",
+  "projectId": "qcm-analiza-ankiet",
+  "storageBucket": "qcm-analiza-ankiet.firebasestorage.app",
+  "messagingSenderId": "474687326675",
+  "appId": "1:474687326675:web:4f4c7faa1b86d3fb004726",
+  "measurementId": "G-2CK4JW2DMB",
+  "geminiApiKey": "AIzaSyAWmib2LjA1iYnm_ed3jTlKEwcMDeQ0C8I"
 }

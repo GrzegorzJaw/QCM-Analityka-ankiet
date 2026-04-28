@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import {
   getFirestore,
@@ -22,10 +21,16 @@ import {
 import { SurveyRecord } from "../types";
 import firebaseConfig from "../firebase-applet-config.json";
 
+// Inicjalizacja aplikacji
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+// ROZWIĄZANIE BŁĘDU: Jawne wskazanie nazwy bazy danych "ankiety"
+// Zamiast (default), podajemy drugi parametr odpowiadający nazwie bazy z konsoli Firebase
+export const db = getFirestore(app, "ankiety");
+
 export const auth = getAuth(app);
 
+// Kolekcja również nazywa się "ankiety"
 const ankietyCol = collection(db, "ankiety");
 
 enum OperationType {
@@ -122,7 +127,6 @@ export const firebaseService = {
       const batch = writeBatch(db);
       newSurveys.forEach(survey => {
         const docRef = doc(ankietyCol);
-        // Remove id from data to avoid conflict if it exists
         const { id, ...data } = survey;
         batch.set(docRef, { ...data, fileName, createdAt: new Date() });
       });
@@ -161,5 +165,3 @@ export const firebaseService = {
     }
   }
 };
-
-
